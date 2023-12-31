@@ -1,0 +1,12 @@
+{
+    "files.associations": {
+        "stdbool.h": "c",
+        "ctype.h": "c",
+        "brainfudge.h": "c",
+        "stdlib.h": "c",
+        "stdio.h": "c",
+        "string.h": "c",
+        "compare": "c",
+        "type_traits": "c"
+    }
+}
