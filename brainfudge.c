@@ -8,6 +8,47 @@
     #include <windows.h>
 #endif
 
+#ifdef __linux__
+    #include <termios.h>
+    #include <unistd.h>
+    #include <signal.h>
+
+    struct termios original_termios;
+    // Function to set terminal attributes for non-blocking input
+    void setNonBlockingMode() {
+        struct termios ttystate;
+
+        // Get the original terminal state
+        tcgetattr(STDIN_FILENO, &original_termios);
+
+        // Copy the original settings
+        tcgetattr(STDIN_FILENO, &ttystate);
+
+        // Turn off canonical mode and echoing
+        ttystate.c_lflag &= ~(ICANON | ECHO);
+
+        // Set the minimum number of characters to read
+        ttystate.c_cc[VMIN] = 1;
+
+        // Set the timeout to 0 to make it non-blocking
+        ttystate.c_cc[VTIME] = 0;
+
+        // Set the terminal attributes
+        tcsetattr(STDIN_FILENO, TCSANOW, &ttystate);
+    }
+
+    // Function to restore the original terminal settings
+    void restoreOriginalMode() {
+        tcsetattr(STDIN_FILENO, TCSANOW, &original_termios);
+    }
+
+    // Signal handler for SIGINT (Ctrl+C)
+    void handleSigInt(int signo) {
+        restoreOriginalMode();
+        exit(signo);
+    }
+#endif
+
 // Brainfudge is a brainfuck interpreter written in c
 // More info on brainfuck can be found at 
 //      https://esolangs.org/wiki/Brainfuck#Language_overview
@@ -15,8 +56,12 @@
 const int NUM_TOKEN_SYMBOLS = 8;
 const char TOKEN_SYMBOLS[8] = {'>', '<', '+', '-', '.', ',', '[', ']'};
 
-bool BF_interpret(char *fileName, int numCells) {
-    char *sourceCode = getSourceCode(fileName);
+bool BF_interpret(BF_interpreterInfo *interpreterInfo) {
+    #ifdef __linux__
+        signal(SIGINT, handleSigInt);
+    #endif
+
+    char *sourceCode = getSourceCode(interpreterInfo->fileName);
     
     BF_LexerInfo lexer = BF_lexer(sourceCode);
     free(sourceCode);
@@ -25,15 +70,22 @@ bool BF_interpret(char *fileName, int numCells) {
     free(lexer.tokens);
 
 
-    BF_CellArray cellArray = BF_initializeCells(numCells);
+    BF_CellArray cellArray = BF_initializeCells(interpreterInfo->numCells);
     BF_ParseTreeNode *instPtr = parseTree;
     BF_Cell *memPtr = cellArray.cells;
     BF_execute(parseTree, &cellArray, instPtr, memPtr);
 
-    //BF_printCells(&cellArray);
+    if (interpreterInfo->dumpMemory) {
+        BF_printCells(&cellArray);
+    }
 
     free(cellArray.cells);
     BF_freeTree(parseTree);
+
+    #ifdef __linux__
+        restoreOriginalMode();
+        printf("\r\n");
+    #endif
 
     return true;
 }
@@ -50,7 +102,8 @@ BF_LexerInfo BF_lexer(char *sourceCode) {
     unsigned int tokenCount = 0;
     BF_Token *tokens = malloc(tokenListSize * sizeof(BF_Token));
     if (tokens == NULL) {
-        return li;
+        printf("ERROR: BF could not allocate token list!\n");
+        exit(1);
     }
     
     char cd;
@@ -133,7 +186,8 @@ BF_ParseTreeNode* BF_createNode(BF_Token type) {
     BF_ParseTreeNode *newNode = malloc(sizeof(BF_ParseTreeNode));
 
     if (newNode == NULL) {
-        return NULL;
+        printf("ERROR: BF could not allocate parse tree node!\n");
+        exit(1);
     }
 
     newNode->type = type;
@@ -253,7 +307,12 @@ void BF_execute(BF_ParseTreeNode *root, BF_CellArray *cellArray, BF_ParseTreeNod
             BF_execute(root->next, cellArray, instPtr + 1, memPtr);
             break;
         case BF_OUT:
-            putchar(memPtr->val);
+            #ifdef __linux__
+                write(STDOUT_FILENO, &memPtr->val, 1);
+            #endif
+            #ifdef _WIN32
+                putchar(memPtr->val);
+            #endif
             BF_execute(root->next, cellArray, instPtr + 1, memPtr);
             break;
         case BF_IN:
@@ -321,7 +380,8 @@ BF_CellArray BF_initializeCells(int numCells) {
     BF_Cell *cells = malloc((numCells) * sizeof(BF_Cell));
 
     if (cells == NULL) {
-        return cellArray;
+        printf("ERROR: BF could not allocate cells!\n");
+        exit(1);
     }
 
     // Initialize all cells to have a value of 0
@@ -357,8 +417,9 @@ char *getSourceCode(char *fileName) {
 
     // Get the size of the file
     if (fp == NULL) {
-        // ERROR HANDLING NEEDED
+        printf("ERROR: Cannot open file '%s'\n", fileName);
         fclose(fp);
+        exit(1);
     } else if (fseek(fp, 0, SEEK_END) < 0){
         fclose(fp);
     } else {
@@ -372,7 +433,8 @@ char *getSourceCode(char *fileName) {
         sourceCode = malloc((fileSize + 1) * sizeof(char));
 
         if (sourceCode == NULL) {
-            return NULL;
+            printf("ERROR: BF could not allocate cstring for source code!\n");
+            exit(1);
         }
 
         // Read everything from the file and put it into `sourceCode`
@@ -390,7 +452,8 @@ char *getFileNameExtension(char *fileName) {
     char *fExt = malloc((extLen + 1) * sizeof(char));
 
     if (fExt == NULL) {
-        return NULL;
+        printf("ERROR: BF could not allocate cstring for file name!\n");
+        exit(1);
     }
 
     // Copy over the file extension from `fileName` into fExt
@@ -424,7 +487,16 @@ char BF_getChar() {
     bool shiftDown = false;
 
     #ifdef __linux__
-        // Figure out linux stuff
+        setNonBlockingMode();
+        read(STDIN_FILENO, &c, 1);
+
+        if (c == '\r' || c == '\n') {
+            c = '\0';
+        }
+
+        restoreOriginalMode();
+
+        return c;
     #elif _WIN32
         HANDLE handleStdInput = GetStdHandle(STD_INPUT_HANDLE);
         INPUT_RECORD inputRecord;
@@ -464,4 +536,17 @@ char BF_getChar() {
 
     // On failure
     return '\0';
+}
+
+bool doesFileExist(char *fileName) {
+    FILE *fp = fopen(fileName, "r");
+    bool exists = false;
+
+    if (fp != NULL)
+    {
+        exists = true;
+        fclose(fp); // close the file
+    }
+
+    return exists;
 }

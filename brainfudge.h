@@ -2,7 +2,7 @@
 #define BRAINFUDGE_H 1
 
 #ifndef BF_DEFAULT_CELL_COUNT
-#define BF_DEFAULT_CELL_COUNT 32
+#define BF_DEFAULT_CELL_COUNT 32768
 #endif
 
 #include <stdbool.h>
@@ -50,7 +50,7 @@ typedef struct BF_interpreterInfo {
 } BF_interpreterInfo;
 
 // Interpret brainfudge source code locate in a file supplied through the function argument and execute the brainfudge program
-bool BF_interpret(char *, int);
+bool BF_interpret(BF_interpreterInfo *);
 
 // Recognize language keywords, operators, constant and every token that the grammar defines.
 BF_LexerInfo BF_lexer(char *);
@@ -89,5 +89,7 @@ int isValueInArray(char, const char *, const int);
 
 // Get a character from the user in standard input
 char BF_getChar();
+
+bool doesFileExist(char *);
 
 #endif

@@ -4,46 +4,44 @@
 #include <stdlib.h>
 #include "brainfudge.h"
 
-// TODO
-//  malloc error handling
-//  file cant open error handling
-//  character input for linux systems
-
 int main(int argc, char *argv[]) {
     BF_interpreterInfo interpreterInfo;
     interpreterInfo.fileName = NULL;
     interpreterInfo.numCells = BF_DEFAULT_CELL_COUNT;
     interpreterInfo.dumpMemory = false;
 
-    char *fExt = getFileNameExtension(argv[1]);
-    if ((strcmp(fExt, "bf") == 0 || strcmp(fExt, "b") == 0)) {
-        interpreterInfo.fileName = argv[1];
+    if (argc < 2) {
+        printf("ERROR: NO bf file!\n");
+        exit(1);
     }
+
+    char *fExt = getFileNameExtension(argv[1]);
+    if ((strcmp(fExt, "bf") == 0 || strcmp(fExt, "b") == 0) && doesFileExist(argv[1])) {
+        interpreterInfo.fileName = argv[1];
+    } else {
+        free(fExt);
+        printf("ERROR: Invalid file extension or file does not exist!");
+        exit(1);
+    }
+    free(fExt);
 
     for (int i = 2; i < argc; ++i) {
         if (strcmp(argv[i], "-c") == 0 && (i + 1 < argc)) {
-            if (isStringNum(argv[i + 1]) == true) {
+            if (isStringNum(argv[i + 1])) {
                 interpreterInfo.numCells = atoi(argv[i + 1]);
-                printf("Cell count: %s\n", argv[i + 1]);
+                ++i;
+            } else {
+                printf("ERROR: Improper number of cells!\n");
+                exit(1);
             }
         }
-    }
-
-    if (argc < 3) {
-        printf("ERROR: Too few arguments!\n");
-    } else if (argc == 3) {
-        char *fExt = getFileNameExtension(argv[1]);
-
-        if ((strcmp(fExt, "bf") == 0 || strcmp(fExt, "b") == 0) && isStringNum(argv[2]) == true) {
-            //BF_interpret(argv[1], atoi(argv[2]));
-        } else {
-            printf("ERROR: Improper file type or cell number value!\n");
+        
+        if (strcmp(argv[i], "-d") == 0) {
+            interpreterInfo.dumpMemory = true;
         }
-
-        free(fExt);
-    } else {
-        printf("ERROR: Too many arguments!\n");
     }
+
+    BF_interpret(&interpreterInfo);
     
     return 0;
 }
