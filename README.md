@@ -32,22 +32,22 @@ There are two additional parameters that can be added when running the interpret
 # Examples
 This script prints "Hello World!".
 ```
-./braunfudge examples/hello.bf
+./brainfudge examples/hello.bf
 ```
 
 This script prints "Hello World!", specifies that the program should have 8 memory cells, and then dumps the content of those cells at the end of program execution.
 ```
-./braunfudge examples/hello.bf -c 8 -d
+./brainfudge examples/hello.bf -c 8 -d
 ```
 
 This script prints each character the user inputs directly after the user inputs them until the enter key is pressed, specifies that the program should have 8 memory cells, and then dumps the content of those cells at the end of program execution.
 ```
-./braunfudge examples/cat.bf -c 8 -d
+./brainfudge examples/cat.bf -c 8 -d
 ```
 
 This script prints each character the user inputs directly after the user inputs them until the enter key is pressed, saves each character that is entered into a memory cell, specifies that the program should have 32 memory cells, and then dumps the content of those cells at the end of program execution.
 ```
-./braunfudge examples/string.bf -c 32 -d
+./brainfudge examples/string.bf -c 32 -d
 ```
 
 ## License
