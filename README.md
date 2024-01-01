@@ -12,7 +12,7 @@
  '[' Jump past the matching ] if the cell at the pointer is 0
  ']' Jump back to the matching [ if the cell at the pointer is nonzero
  ```
- Any other character besides these 8 are treated as comments by the interpreter. If the memory pointer tries to be moved to left when it currently points towards the 0th cell or the memory pointer tries to be moved to right when at the last cell, the memory pointer does not move. If the value of the cell is incremented at 255 or decremented at 0, the cell value overflows to 0 and 255 respectively.
+ Any other character besides these 8 are treated as comments by the interpreter. If the memory pointer tries to be moved to left when it currently points towards the 0th cell or the memory pointer tries to be moved to right when at the last cell, the memory pointer does not move. If the value of the cell is incremented at 255 or decremented at 0, the cell value overflows to 0 and 255 respectively. Loops can be nested as many times as the user wants, but the interpreter does not check if there is a corresponding closing bracket to the loop.
 
 # Usage
 Compile using the makefile and run:
