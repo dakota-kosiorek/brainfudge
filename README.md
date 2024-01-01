@@ -19,12 +19,12 @@ Compile using the makefile and run:
 
 Windows
 ```
-./brainfudge filename
+brainfudge filename
 ```
 
 Linux
 ```
-brainfudge filename
+./brainfudge filename
 ```
 
 There are two additional parameters that can be added when running the interpreter `-c` and `-d`. `-c` should be followed with a interger (e.x. `-c 16`) and is used to specify the number of memory cells for the program. `-d` dumps the contents of each memory cell at the end of the programs execution.
